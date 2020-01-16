@@ -137,18 +137,23 @@ describe('CryptoTest', function() {
 
     it('Decrypt should fail without env var, and add extra message', async () => {
       const message: string = Messages.loadMessages('@salesforce/core', 'crypto').getMessage('MacKeychainOutOfSync');
-      const errorMessage: object = SfdxError.wrap(new Error(message));
+      const err = Error('Failed to decipher auth data. reason: Unsupported state or unable to authenticate data.');
+      const sfdxErr: object = SfdxError.wrap(err);
+      sfdxErr['actions'] = message;
       stubMethod($$.SANDBOX, os, 'platform').returns('darwin');
-      stubMethod($$.SANDBOX, crypto, 'decrypt').callsFake(() => ({
-        setAuthTag: () => {
-          throw errorMessage;
-        },
-        update: () => {},
-        final: () => {}
-      }));
       crypto = new Crypto();
       await crypto.init();
-      expect(() => crypto.decrypt('abcdefghijklmnopqrstuvwxyz:123456789')).to.throw(message);
+      $$.SANDBOX.stub(crypto, 'decrypt').throws(sfdxErr);
+      expect(() => crypto.decrypt('abcdefghijklmnopqrstuvwxyz:123456789')).to.throw(
+        'Failed to decipher auth data. reason: Unsupported state or unable to authenticate data.'
+      );
+      try {
+        // are there any better ways to assert on the actions of the error?
+        crypto.decrypt('abcdefghijklmnopqrstuvwxyz:123456789');
+        chai.assert.fail('the above must fail');
+      } catch (err) {
+        expect(err.actions).to.equal(message);
+      }
     });
 
     it('Decrypt should fail but not add extra message with env var', async () => {

@@ -155,10 +155,10 @@ export class Crypto extends AsyncOptionalCreatable<CryptoOptions> {
         const useGenericUnixKeychain =
           env.getBoolean('SFDX_USE_GENERIC_UNIX_KEYCHAIN') || env.getBoolean('USE_GENERIC_UNIX_KEYCHAIN');
         if (os.platform() === 'darwin' && !useGenericUnixKeychain) {
-          e.message += Messages.loadMessages('@salesforce/core', 'crypto').getMessage('MacKeychainOutOfSync');
+          e.actions = Messages.loadMessages('@salesforce/core', 'crypto').getMessage('MacKeychainOutOfSync');
         }
-        const errMsg = this.messages.getMessage('AuthDecryptError', [e.message]);
-        throw new SfdxError(errMsg, 'AuthDecryptError');
+        e.message = this.messages.getMessage('AuthDecryptError', [e.message]);
+        throw SfdxError.wrap(e);
       }
       return dec;
     });
